@@ -42,11 +42,13 @@ def create_app():
     from app.routes.sessions import sessions_bp
     from app.routes.goals import goals_bp
     from app.routes.auth import auth_bp
+    from app.routes.admin import admin_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(sessions_bp, url_prefix='/sessions')
     app.register_blueprint(goals_bp, url_prefix='/goals')
+    app.register_blueprint(admin_bp)
 
     # Only run create_all locally (SQLite). On Vercel/Supabase we create
     # tables via migration instead of at runtime.

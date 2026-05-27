@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Study Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #0f0f1a; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+        /* Topbar */
+        .topbar { background: #1a1a2e; border-bottom: 1px solid #2a2a4a; padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-left { display: flex; align-items: center; gap: 12px; }
+        .topbar-left i { color: #7c3aed; font-size: 1.4rem; }
+        .topbar-left h1 { font-size: 1.1rem; font-weight: 700; color: #f1f5f9; }
+        .badge { background: #7c3aed22; color: #a78bfa; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 20px; border: 1px solid #7c3aed44; letter-spacing: 1px; }
+        .logout-btn { background: #2a2a4a; color: #94a3b8; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; transition: background 0.2s; text-decoration: none; }
+        .logout-btn:hover { background: #3a3a5a; color: #f1f5f9; }
+
+        /* Content */
+        .content { padding: 32px; max-width: 1200px; margin: 0 auto; }
+
+        /* Stats cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 36px; }
+        .stat-card { background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 14px; padding: 24px; }
+        .stat-card .label { font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+        .stat-card .value { font-size: 2rem; font-weight: 700; color: #f1f5f9; }
+        .stat-card .icon { font-size: 1.4rem; margin-bottom: 12px; }
+        .stat-card.purple .icon { color: #a78bfa; }
+        .stat-card.blue .icon { color: #60a5fa; }
+        .stat-card.green .icon { color: #34d399; }
+
+        /* Table */
+        .section-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .section-title i { color: #7c3aed; }
+        .table-wrap { background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 14px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: #12122a; }
+        th { padding: 14px 20px; text-align: left; font-size: 0.78rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        td { padding: 14px 20px; font-size: 0.9rem; color: #cbd5e1; border-top: 1px solid #2a2a4a; }
+        tr:hover td { background: #1e1e38; }
+        .name-cell { font-weight: 600; color: #f1f5f9; display: flex; align-items: center; gap: 10px; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; background: #7c3aed33; color: #a78bfa; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
+        .pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+        .pill-blue { background: #1e3a5f; color: #60a5fa; }
+        .pill-green { background: #064e3b; color: #34d399; }
+        .empty { text-align: center; padding: 48px; color: #475569; }
+        .empty i { font-size: 2rem; margin-bottom: 12px; display: block; }
+        .refresh-btn { background: #7c3aed; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 0.85rem; margin-left: auto; display: flex; align-items: center; gap: 6px; }
+        .refresh-btn:hover { background: #6d28d9; }
+        .section-header { display: flex; align-items: center; margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+
+    <div class="topbar">
+        <div class="topbar-left">
+            <i class="fas fa-shield-alt"></i>
+            <h1>Admin Panel <span class="badge">PRIVATE</span></h1>
+        </div>
+        <a href="/admin/logout" class="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+    </div>
+
+    <div class="content">
+
+        <!-- Stats -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card purple">
+                <div class="icon"><i class="fas fa-users"></i></div>
+                <div class="label">Total Visitors</div>
+                <div class="value" id="totalUsers">—</div>
+            </div>
+            <div class="stat-card blue">
+                <div class="icon"><i class="fas fa-book-open"></i></div>
+                <div class="label">Total Sessions</div>
+                <div class="value" id="totalSessions">—</div>
+            </div>
+            <div class="stat-card green">
+                <div class="icon"><i class="fas fa-clock"></i></div>
+                <div class="label">Total Hours Studied</div>
+                <div class="value" id="totalHours">—</div>
+            </div>
+        </div>
+
+        <!-- Users table -->
+        <div class="section-header">
+            <div class="section-title"><i class="fas fa-user-friends"></i> Visitors</div>
+            <button class="refresh-btn" onclick="loadStats()"><i class="fas fa-sync-alt"></i> Refresh</button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Joined</th>
+                        <th>Sessions</th>
+                        <th>Hours Studied</th>
+                        <th>Last Active</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTable">
+                    <tr><td colspan="6" class="empty"><i class="fas fa-spinner fa-spin"></i>Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <script>
+        async function loadStats() {
+            try {
+                const res = await fetch('/admin/api/stats');
+                const data = await res.json();
+
+                document.getElementById('totalUsers').textContent = data.total_users;
+                document.getElementById('totalSessions').textContent = data.total_sessions;
+                document.getElementById('totalHours').textContent = data.total_hours + ' hrs';
+
+                const tbody = document.getElementById('usersTable');
+
+                if (data.users.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="empty"><i class="fas fa-ghost"></i>No visitors yet</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.users.map((u, i) => `
+                    <tr>
+                        <td style="color:#475569">${i + 1}</td>
+                        <td>
+                            <div class="name-cell">
+                                <div class="avatar">${u.name.charAt(0).toUpperCase()}</div>
+                                ${u.name}
+                            </div>
+                        </td>
+                        <td>${u.joined}</td>
+                        <td><span class="pill pill-blue">${u.sessions} sessions</span></td>
+                        <td><span class="pill pill-green">${u.hours} hrs</span></td>
+                        <td style="color:#64748b">${u.last_active}</td>
+                    </tr>
+                `).join('');
+
+            } catch (err) {
+                document.getElementById('usersTable').innerHTML = `<tr><td colspan="6" class="empty">Failed to load data</td></tr>`;
+            }
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>
