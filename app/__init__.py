@@ -41,7 +41,9 @@ def create_app():
     from app.routes.main import main_bp
     from app.routes.sessions import sessions_bp
     from app.routes.goals import goals_bp
+    from app.routes.auth import auth_bp
 
+    app.register_blueprint(auth_bp)
     app.register_blueprint(main_bp)
     app.register_blueprint(sessions_bp, url_prefix='/sessions')
     app.register_blueprint(goals_bp, url_prefix='/goals')
