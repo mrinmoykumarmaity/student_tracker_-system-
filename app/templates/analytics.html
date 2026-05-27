@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Study Tracker{% endblock %}
+
+{% block content %}
+<div class="analytics-page">
+    <h1 class="page-title">Study Analytics</h1>
+    
+    <!-- Key Metrics -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <i class="fas fa-chart-line metric-icon"></i>
+            <h3>Average Daily Hours</h3>
+            <p class="metric-value" id="avgDailyHours">0 hrs</p>
+        </div>
+        
+        <div class="metric-card">
+            <i class="fas fa-fire metric-icon"></i>
+            <h3>Best Streak</h3>
+            <p class="metric-value" id="bestStreak">0 days</p>
+        </div>
+        
+        <div class="metric-card">
+            <i class="fas fa-book metric-icon"></i>
+            <h3>Total Sessions</h3>
+            <p class="metric-value" id="totalSessions">0</p>
+        </div>
+        
+        <div class="metric-card">
+            <i class="fas fa-trophy metric-icon"></i>
+            <h3>Most Studied Subject</h3>
+            <p class="metric-value" id="topSubject">-</p>
+        </div>
+    </div>
+    
+    <!-- Charts -->
+    <div class="analytics-charts">
+        <div class="chart-card large">
+            <h3>Weekly Study Trend (Last 4 Weeks)</h3>
+            <canvas id="weeklyTrendChart"></canvas>
+        </div>
+        
+        <div class="chart-card">
+            <h3>Daily Study Pattern (Last 7 Days)</h3>
+            <canvas id="dailyPatternChart"></canvas>
+        </div>
+        
+        <div class="chart-card">
+            <h3>Subject Distribution</h3>
+            <canvas id="subjectDistChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- All Sessions Table -->
+    <div class="section">
+        <div class="section-header">
+            <h2>All Study Sessions</h2>
+            <div class="filter-controls">
+                <input type="text" id="searchInput" placeholder="Search sessions..." class="search-input">
+                <select id="subjectFilter" class="filter-select">
+                    <option value="">All Subjects</option>
+                </select>
+            </div>
+        </div>
+        <div class="sessions-table-wrapper">
+            <table class="data-table" id="sessionsTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Subject</th>
+                        <th>Topic</th>
+                        <th>Duration</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="sessionsTableBody">
+                    <tr>
+                        <td colspan="5" class="empty-state">Loading sessions...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    let allSessions = [];
+    let weeklyChart, dailyPatternChart, subjectDistChart;
+    
+    // Load analytics data
+    async function loadAnalytics() {
+        try {
+            const [statsResponse, sessionsResponse] = await Promise.all([
+                fetch('/api/dashboard-stats'),
+                fetch('/sessions/list')
+            ]);
+            
+            const stats = await statsResponse.json();
+            const sessionsData = await sessionsResponse.json();
+            
+            allSessions = sessionsData.sessions;
+            
+            // Update metrics
+            updateMetrics(stats, allSessions);
+            
+            // Update charts
+            updateWeeklyChart(stats.weekly_trend);
+            updateDailyPatternChart(stats.daily_trend);
+            updateSubjectDistChart(stats.subject_distribution);
+            
+            // Load sessions table
+            loadSessionsTable(allSessions);
+            
+            // Populate subject filter
+            populateSubjectFilter(allSessions);
+            
+        } catch (error) {
+            console.error('Error loading analytics:', error);
+        }
+    }
+    
+    function updateMetrics(stats, sessions) {
+        // Calculate average daily hours
+        const uniqueDates = [...new Set(sessions.map(s => s.study_date))];
+        const avgDaily = uniqueDates.length > 0 ? (stats.total_hours / uniqueDates.length).toFixed(1) : 0;
+        document.getElementById('avgDailyHours').textContent = avgDaily + ' hrs';
+        
+        // Best streak
+        document.getElementById('bestStreak').textContent = stats.best_streak + ' days';
+        
+        // Total sessions
+        document.getElementById('totalSessions').textContent = sessions.length;
+        
+        // Most studied subject
+        if (stats.subject_distribution.length > 0) {
+            const topSubject = stats.subject_distribution.reduce((max, curr) => 
+                curr.hours > max.hours ? curr : max
+            );
+            document.getElementById('topSubject').textContent = topSubject.subject;
+        }
+    }
+    
+    function loadSessionsTable(sessions) {
+        const tbody = document.getElementById('sessionsTableBody');
+        
+        if (sessions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No sessions found</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = sessions.map(session => `
+            <tr>
+                <td>${session.study_date}</td>
+                <td><span class="badge">${session.subject}</span></td>
+                <td>${session.topic}</td>
+                <td>${session.duration} hrs</td>
+                <td>
+                    <button class="btn-icon" onclick="deleteSession(${session.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    function populateSubjectFilter(sessions) {
+        const subjects = [...new Set(sessions.map(s => s.subject))];
+        const select = document.getElementById('subjectFilter');
+        
+        subjects.forEach(subject => {
+            const option = document.createElement('option');
+            option.value = subject;
+            option.textContent = subject;
+            select.appendChild(option);
+        });
+    }
+    
+    // Search and filter
+    document.getElementById('searchInput').addEventListener('input', filterSessions);
+    document.getElementById('subjectFilter').addEventListener('change', filterSessions);
+    
+    function filterSessions() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const subjectFilter = document.getElementById('subjectFilter').value;
+        
+        const filtered = allSessions.filter(session => {
+            const matchesSearch = session.topic.toLowerCase().includes(searchTerm) ||
+                                session.subject.toLowerCase().includes(searchTerm);
+            const matchesSubject = !subjectFilter || session.subject === subjectFilter;
+            
+            return matchesSearch && matchesSubject;
+        });
+        
+        loadSessionsTable(filtered);
+    }
+    
+    // Delete session
+    async function deleteSession(sessionId) {
+        if (!confirm('Are you sure you want to delete this session?')) return;
+        
+        try {
+            const response = await fetch(`/sessions/delete/${sessionId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Session deleted successfully!');
+                loadAnalytics();
+            }
+        } catch (error) {
+            showToast('Error deleting session', 'error');
+        }
+    }
+    
+    // Initialize
+    loadAnalytics();
+</script>
+{% endblock %}

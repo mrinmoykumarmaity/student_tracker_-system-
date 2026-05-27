@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Study Tracker{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h1 class="page-title">Dashboard</h1>
+    
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon blue">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Total Hours</h3>
+                <p class="stat-value" id="totalHours">0</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon green">
+                <i class="fas fa-calendar-day"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Today</h3>
+                <p class="stat-value" id="todayHours">0</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon purple">
+                <i class="fas fa-calendar-week"></i>
+            </div>
+            <div class="stat-content">
+                <h3>This Week</h3>
+                <p class="stat-value" id="weekHours">0</p>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon orange">
+                <i class="fas fa-fire"></i>
+            </div>
+            <div class="stat-content">
+                <h3>Current Streak</h3>
+                <p class="stat-value" id="currentStreak">0 days</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Goals Section -->
+    <div class="section">
+        <div class="section-header">
+            <h2>Study Goals</h2>
+            <button class="btn btn-primary" onclick="showAddGoalModal()">
+                <i class="fas fa-plus"></i> Add Goal
+            </button>
+        </div>
+        <div class="goals-container" id="goalsContainer">
+            <p class="empty-state">No goals set yet. Create your first goal!</p>
+        </div>
+    </div>
+    
+    <!-- Charts Section -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h3>Daily Study Trend (Last 7 Days)</h3>
+            <canvas id="dailyTrendChart"></canvas>
+        </div>
+        
+        <div class="chart-card">
+            <h3>Subject Distribution</h3>
+            <canvas id="subjectChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Recent Sessions -->
+    <div class="section">
+        <h2>Recent Study Sessions</h2>
+        <div class="sessions-table" id="recentSessions">
+            <p class="empty-state">No study sessions yet. Add your first session!</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add Goal Modal -->
+<div class="modal" id="addGoalModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Add New Goal</h3>
+            <button class="modal-close" onclick="closeAddGoalModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="addGoalForm">
+            <div class="form-group">
+                <label>Goal Type</label>
+                <select name="goal_type" required>
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Target Hours</label>
+                <input type="number" name="target_hours" step="0.5" min="0.5" required>
+            </div>
+            <div class="form-group">
+                <label>Deadline</label>
+                <input type="date" name="deadline" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeAddGoalModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Goal</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    let dailyChart, subjectChart;
+    
+    // Load dashboard data
+    async function loadDashboard() {
+        try {
+            const response = await fetch('/api/dashboard-stats');
+            const data = await response.json();
+            
+            // Update stats
+            document.getElementById('totalHours').textContent = data.total_hours + ' hrs';
+            document.getElementById('todayHours').textContent = data.today_hours + ' hrs';
+            document.getElementById('weekHours').textContent = data.week_hours + ' hrs';
+            document.getElementById('currentStreak').textContent = data.current_streak + ' days';
+            
+            // Update charts
+            updateDailyChart(data.daily_trend);
+            updateSubjectChart(data.subject_distribution);
+            
+            // Load goals and sessions
+            loadGoals();
+            loadRecentSessions();
+        } catch (error) {
+            console.error('Error loading dashboard:', error);
+        }
+    }
+    
+    // Load goals
+    async function loadGoals() {
+        try {
+            const response = await fetch('/goals/list');
+            const data = await response.json();
+            
+            const container = document.getElementById('goalsContainer');
+            
+            if (data.goals.length === 0) {
+                container.innerHTML = '<p class="empty-state">No goals set yet. Create your first goal!</p>';
+                return;
+            }
+            
+            container.innerHTML = data.goals.map(goal => `
+                <div class="goal-card">
+                    <div class="goal-header">
+                        <h4>${goal.goal_type.charAt(0).toUpperCase() + goal.goal_type.slice(1)} Goal</h4>
+                        <button class="btn-icon" onclick="deleteGoal(${goal.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="goal-progress">
+                        <div class="progress-info">
+                            <span>${goal.current_hours || 0} / ${goal.target_hours} hrs</span>
+                            <span>${goal.progress}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${goal.progress}%"></div>
+                        </div>
+                    </div>
+                    <p class="goal-deadline">Deadline: ${goal.deadline}</p>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('Error loading goals:', error);
+        }
+    }
+    
+    // Load recent sessions
+    async function loadRecentSessions() {
+        try {
+            const response = await fetch('/sessions/list');
+            const data = await response.json();
+            
+            const container = document.getElementById('recentSessions');
+            
+            if (data.sessions.length === 0) {
+                container.innerHTML = '<p class="empty-state">No study sessions yet. Add your first session!</p>';
+                return;
+            }
+            
+            const recentSessions = data.sessions.slice(0, 5);
+            
+            container.innerHTML = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Subject</th>
+                            <th>Topic</th>
+                            <th>Duration</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${recentSessions.map(session => `
+                            <tr>
+                                <td>${session.study_date}</td>
+                                <td><span class="badge">${session.subject}</span></td>
+                                <td>${session.topic}</td>
+                                <td>${session.duration} hrs</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } catch (error) {
+            console.error('Error loading sessions:', error);
+        }
+    }
+    
+    // Add goal
+    document.getElementById('addGoalForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData);
+        
+        try {
+            const response = await fetch('/goals/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Goal created successfully!');
+                closeAddGoalModal();
+                e.target.reset();
+                loadGoals();
+            } else {
+                showToast(result.message, 'error');
+            }
+        } catch (error) {
+            showToast('Error creating goal', 'error');
+        }
+    });
+    
+    // Delete goal
+    async function deleteGoal(goalId) {
+        if (!confirm('Are you sure you want to delete this goal?')) return;
+        
+        try {
+            const response = await fetch(`/goals/delete/${goalId}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                showToast('Goal deleted successfully!');
+                loadGoals();
+            }
+        } catch (error) {
+            showToast('Error deleting goal', 'error');
+        }
+    }
+    
+    // Modal functions
+    function showAddGoalModal() {
+        document.getElementById('addGoalModal').classList.add('active');
+    }
+    
+    function closeAddGoalModal() {
+        document.getElementById('addGoalModal').classList.remove('active');
+    }
+    
+    // Initialize
+    loadDashboard();
+</script>
+{% endblock %}
