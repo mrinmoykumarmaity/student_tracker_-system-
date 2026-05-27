@@ -36,6 +36,9 @@ database/*.db
 *.swo
 *~
 
+# Supabase temp files (contain project refs and internal metadata)
+supabase/.temp/
+
 # OS
 .DS_Store
 Thumbs.db
