@@ -5,70 +5,49 @@ from app.models.user import User
 auth_bp = Blueprint('auth', __name__)
 
 
-@auth_bp.route('/register', methods=['GET'])
-def register_page():
-    return render_template('auth.html', mode='register')
+@auth_bp.route('/')
+@auth_bp.route('/enter', methods=['GET'])
+def enter_page():
+    # If already has a name, go straight to dashboard
+    if 'user_id' in session:
+        return redirect(url_for('main.dashboard'))
+    return render_template('auth.html')
 
 
-@auth_bp.route('/login', methods=['GET'])
-def login_page():
-    return render_template('auth.html', mode='login')
-
-
-@auth_bp.route('/register', methods=['POST'])
-def register():
+@auth_bp.route('/enter', methods=['POST'])
+def enter():
     try:
         data = request.get_json()
-        username = data.get('username', '').strip()
-        email = data.get('email', '').strip().lower()
-        password = data.get('password', '')
+        name = data.get('name', '').strip()
 
-        if not username or not email or not password:
-            return jsonify({'success': False, 'message': 'All fields are required'}), 400
+        if not name or len(name) < 2:
+            return jsonify({'success': False, 'message': 'Please enter a valid name (at least 2 characters)'}), 400
 
-        if User.query.filter_by(email=email).first():
-            return jsonify({'success': False, 'message': 'Email already registered'}), 400
-
-        if User.query.filter_by(username=username).first():
-            return jsonify({'success': False, 'message': 'Username already taken'}), 400
-
-        user = User(username=username, email=email)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
+        # Find existing user by username or create a new one
+        user = User.query.filter_by(username=name).first()
+        if not user:
+            # Create a new user with just a name — no email/password needed
+            import secrets
+            user = User(
+                username=name,
+                email=f"{name.lower().replace(' ', '_')}_{secrets.token_hex(4)}@guest.local",
+                password_hash='no-password'
+            )
+            db.session.add(user)
+            db.session.commit()
 
         session['user_id'] = user.id
         session['username'] = user.username
+        session.permanent = True
 
-        return jsonify({'success': True, 'message': 'Account created!', 'redirect': '/dashboard'}), 201
+        return jsonify({'success': True, 'redirect': '/dashboard'})
 
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 400
 
 
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    try:
-        data = request.get_json()
-        email = data.get('email', '').strip().lower()
-        password = data.get('password', '')
-
-        user = User.query.filter_by(email=email).first()
-
-        if not user or not user.check_password(password):
-            return jsonify({'success': False, 'message': 'Invalid email or password'}), 401
-
-        session['user_id'] = user.id
-        session['username'] = user.username
-
-        return jsonify({'success': True, 'message': 'Logged in!', 'redirect': '/dashboard'})
-
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 400
-
-
 @auth_bp.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('auth.login_page'))
+    return redirect(url_for('auth.enter_page'))

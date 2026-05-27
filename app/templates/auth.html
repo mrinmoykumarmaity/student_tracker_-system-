@@ -3,27 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if mode == 'register' %}Register{% else %}Login{% endif %} - Study Tracker</title>
+    <title>Welcome - Study Tracker</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg-color, #f5f7fa); }
-        .auth-card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.10); padding: 40px 36px; width: 100%; max-width: 400px; }
-        .auth-card h1 { font-size: 1.6rem; margin-bottom: 8px; color: #1a1a2e; }
-        .auth-card p.subtitle { color: #666; margin-bottom: 28px; font-size: 0.95rem; }
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: block; font-weight: 500; margin-bottom: 6px; color: #333; font-size: 0.9rem; }
-        .form-group input { width: 100%; padding: 10px 14px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 1rem; box-sizing: border-box; transition: border 0.2s; }
-        .form-group input:focus { outline: none; border-color: #4361ee; }
-        .btn-auth { width: 100%; padding: 12px; background: #4361ee; color: #fff; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        .btn-auth:hover { background: #3451d1; }
-        .auth-switch { text-align: center; margin-top: 20px; font-size: 0.92rem; color: #555; }
-        .auth-switch a { color: #4361ee; text-decoration: none; font-weight: 600; }
-        .auth-switch a:hover { text-decoration: underline; }
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: #f5f7fa; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .auth-card { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.10); padding: 48px 40px; width: 100%; max-width: 420px; }
+        .logo { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+        .logo i { font-size: 2rem; color: #4361ee; }
+        .logo span { font-size: 1.3rem; font-weight: 700; color: #1a1a2e; }
+        h1 { font-size: 1.7rem; margin: 0 0 8px; color: #1a1a2e; }
+        p.subtitle { color: #666; margin: 0 0 32px; font-size: 0.95rem; line-height: 1.5; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-weight: 600; margin-bottom: 8px; color: #333; font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 12px 16px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 1rem; box-sizing: border-box; transition: border 0.2s; }
+        .form-group input:focus { outline: none; border-color: #4361ee; box-shadow: 0 0 0 3px rgba(67,97,238,0.1); }
+        .btn-go { width: 100%; padding: 13px; background: #4361ee; color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-go:hover { background: #3451d1; }
         .error-msg { background: #fff0f0; color: #c0392b; border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; font-size: 0.9rem; display: none; }
-        .logo { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; }
-        .logo i { font-size: 1.8rem; color: #4361ee; }
-        .logo span { font-size: 1.2rem; font-weight: 700; color: #1a1a2e; }
+        .note { text-align: center; margin-top: 20px; font-size: 0.85rem; color: #999; }
     </style>
 </head>
 <body>
@@ -32,61 +30,42 @@
             <i class="fas fa-graduation-cap"></i>
             <span>Study Tracker</span>
         </div>
-        <h1>{% if mode == 'register' %}Create Account{% else %}Welcome Back{% endif %}</h1>
-        <p class="subtitle">{% if mode == 'register' %}Start tracking your study sessions{% else %}Log in to your account{% endif %}</p>
+        <h1>What's your name?</h1>
+        <p class="subtitle">Enter your name to start tracking your study sessions. No account needed.</p>
 
         <div class="error-msg" id="errorMsg"></div>
 
-        <form id="authForm">
-            {% if mode == 'register' %}
+        <form id="nameForm">
             <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="username" placeholder="e.g. mrinmoy" required autocomplete="username">
+                <label for="nameInput">Your Name</label>
+                <input type="text" id="nameInput" name="name" placeholder="e.g. Mrinmoy" required autocomplete="name" autofocus minlength="2" maxlength="50">
             </div>
-            {% endif %}
-            <div class="form-group">
-                <label>Email</label>
-                <input type="email" name="email" placeholder="you@example.com" required autocomplete="email">
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" name="password" placeholder="••••••••" required autocomplete="{% if mode == 'register' %}new-password{% else %}current-password{% endif %}">
-            </div>
-            <button type="submit" class="btn-auth" id="submitBtn">
-                {% if mode == 'register' %}Create Account{% else %}Log In{% endif %}
+            <button type="submit" class="btn-go" id="submitBtn">
+                <i class="fas fa-arrow-right"></i> Go to Dashboard
             </button>
         </form>
 
-        <div class="auth-switch">
-            {% if mode == 'register' %}
-                Already have an account? <a href="/login">Log in</a>
-            {% else %}
-                Don't have an account? <a href="/register">Sign up</a>
-            {% endif %}
-        </div>
+        <p class="note">Your data is saved and linked to your name.</p>
     </div>
 
     <script>
-        const form = document.getElementById('authForm');
+        const form = document.getElementById('nameForm');
         const errorMsg = document.getElementById('errorMsg');
         const submitBtn = document.getElementById('submitBtn');
-        const mode = '{{ mode }}';
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             errorMsg.style.display = 'none';
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Please wait...';
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
 
-            const formData = new FormData(form);
-            const data = Object.fromEntries(formData);
-            const url = mode === 'register' ? '/register' : '/login';
+            const name = document.getElementById('nameInput').value.trim();
 
             try {
-                const res = await fetch(url, {
+                const res = await fetch('/enter', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    body: JSON.stringify({ name })
                 });
                 const result = await res.json();
 
@@ -96,13 +75,13 @@
                     errorMsg.textContent = result.message;
                     errorMsg.style.display = 'block';
                     submitBtn.disabled = false;
-                    submitBtn.textContent = mode === 'register' ? 'Create Account' : 'Log In';
+                    submitBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Go to Dashboard';
                 }
             } catch (err) {
                 errorMsg.textContent = 'Something went wrong. Please try again.';
                 errorMsg.style.display = 'block';
                 submitBtn.disabled = false;
-                submitBtn.textContent = mode === 'register' ? 'Create Account' : 'Log In';
+                submitBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Go to Dashboard';
             }
         });
     </script>

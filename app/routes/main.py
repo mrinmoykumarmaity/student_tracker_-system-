@@ -12,21 +12,21 @@ def login_required():
 @main_bp.route('/')
 def index():
     if not login_required():
-        return redirect(url_for('auth.login_page'))
+        return redirect(url_for('auth.enter_page'))
     return render_template('dashboard.html', username=session.get('username'))
 
 
 @main_bp.route('/dashboard')
 def dashboard():
     if not login_required():
-        return redirect(url_for('auth.login_page'))
+        return redirect(url_for('auth.enter_page'))
     return render_template('dashboard.html', username=session.get('username'))
 
 
 @main_bp.route('/analytics')
 def analytics():
     if not login_required():
-        return redirect(url_for('auth.login_page'))
+        return redirect(url_for('auth.enter_page'))
     return render_template('analytics.html', username=session.get('username'))
 
 
